@@ -38,6 +38,11 @@ class Car(models.Model):
         ('robot', 'robot'),
         ('CVT','CVT')
     )
+    CAR_STATUS = (
+        ('vehicle starts and goes','vehicle starts and goes'),
+        ('vehicle does not start','vehicle does not start'),
+        ('vehicle starts, not going','vehicle starts, not going')
+    )
     transmission_type = models.CharField(choices=TRANSMISSION_TYPES, default='automatic')
     mileage = models.PositiveIntegerField()
     price = models.PositiveIntegerField()
@@ -48,16 +53,17 @@ class Car(models.Model):
     color = models.CharField(max_length=32)
     power = models.PositiveSmallIntegerField()
     damages = models.TextField(null=True,blank=True)
+    car_status = models.CharField(choices=CAR_STATUS, default='vehicle starts and goes')
 
     def __str__(self):
         return f'{self.seller} - {self.year}'
 
 class CarImage(models.Model):
-    car = models.ForeignKey(Car, on_delete=models.CASCADE)
-    car_image = models.ImageField()
+    car = models.ForeignKey(Car, on_delete=models.CASCADE,related_name='car_images')
+    car_image = models.ImageField(upload_to='car_images/')
 
     def __str__(self):
-        return self.car
+        return f'{self.car.seller.username}'
 
 
 class Brand(models.Model):
@@ -70,12 +76,13 @@ class Brand(models.Model):
 class Model(models.Model):
     model = models.CharField(max_length=100)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
+    car = models.OneToOneField(Car, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.model
 
 class Auction(models.Model):
-    car = models.ForeignKey(Car, on_delete=models.CASCADE)
+    car = models.ForeignKey(Car, on_delete=models.CASCADE,related_name='auction')
     start_price = models.PositiveIntegerField()
     min_price = models.PositiveIntegerField(validators=[MinValueValidator(10)])
     start_time = models.DateTimeField()
@@ -100,10 +107,11 @@ class Bid(models.Model):
         return f'{self.buyer} - {self.amount}'
 
 class Feedback(models.Model):
-    seller = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
-    buyer = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    seller = models.ForeignKey(UserProfile, on_delete=models.CASCADE,related_name='seller_feedback')
+    buyer = models.ForeignKey(UserProfile, on_delete=models.CASCADE,related_name='buyer_feedback')
     rating = models.IntegerField(choices=[(i, str(i))for i in range(1,6)])
     created_at = models.DateTimeField(auto_now_add=True)
-
+    car = models.ForeignKey(Car, on_delete=models.CASCADE,related_name='car_feedback')
+    comment = models.TextField()
     def __str__(self):
-        return f'{self.seller} - {self.rating}'
+        return f'{self.buyer} - {self.rating}'
